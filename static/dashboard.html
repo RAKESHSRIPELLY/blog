@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+<h2>Welcome, <span id="user"></span>!</h2>
+<h3>Create a Post</h3>
+<form id="post-form">
+<input type="text" id="title" placeholder="Title" required>
+<textarea id="content" placeholder="Content" required></textarea>
+<button type="submit">Post</button>
+</form>
+<h3>All Posts</h3>
+<div id="posts"></div>
+</div>
+<script>
+        const token = localStorage.getItem("token");
+        console.log('token',token)
+
+        document.getElementById('user').innerText = localStorage.getItem('username');
+        
+        document.getElementById('post-form').addEventListener('submit', async function(event) {
+
+            event.preventDefault();
+
+            const title = document.getElementById('title').value;
+
+            const content = document.getElementById('content').value;
+
+            const username = localStorage.getItem('username');
+
+            await fetch('http://127.0.0.1:8000/posts', {
+
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' ,"Authorization": `Bearer ${token}`},
+
+                body: JSON.stringify({ title, content })
+
+            });
+
+            loadPosts();
+
+        });
+
+        async function loadPosts() {
+
+            const response = await fetch('http://127.0.0.1:8000/posts');
+
+            const data = await response.json();
+
+            const postsContainer = document.getElementById('posts');
+
+            postsContainer.innerHTML = "";
+
+            data.posts.forEach(post => {
+
+                const postDiv = document.createElement('div');
+
+                postDiv.innerHTML = `<h4>${post.title}</h4><p>${post.content}</p>`;
+
+                postsContainer.appendChild(postDiv);
+
+            });
+
+        }
+
+        loadPosts();
+</script>
+</body>
+</html> 

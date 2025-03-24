@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container">
+<h2>Welcome, <span id="user"></span>!</h2>
+<!-- Post Creation Form -->
+<h3>Create a Post</h3>
+<form id="post-form">
+<input type="text" id="title" placeholder="Title" required>
+<textarea id="content" placeholder="Content" required></textarea>
+<button type="submit">Post</button>
+</form>
+<h3>All Posts</h3>
+<div id="posts"></div>
+</div>
+<script>
+
+        // Retrieve and display the logged-in user's name
+
+        const token = localStorage.getItem("token");
+
+        document.getElementById('user').innerText = localStorage.getItem("username") || "Guest";
+
+        // Handle post submission
+
+        document.getElementById('post-form').addEventListener('submit', async function(event) {
+
+            event.preventDefault();
+
+            const title = document.getElementById('title').value;
+
+            const content = document.getElementById('content').value;
+
+            if (!token) {
+
+                alert("You must be logged in to create a post.");
+
+                return;
+
+            }
+
+            const response = await fetch("http://127.0.0.1:8000/posts", {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type": "application/json",
+
+                    "Authorization": `Bearer ${token}`
+
+                },
+
+                body: JSON.stringify({ title, content })
+
+            });
+
+            if (response.ok) {
+
+                document.getElementById('title').value = "";
+
+                document.getElementById('content').value = "";
+
+                loadPosts();  // Reload posts after adding a new one
+
+            } else {
+
+                alert("Failed to create post.");
+
+            }
+
+        });
+
+        // Load and display all posts with comments
+
+        async function loadPosts() {
+
+            const response = await fetch("http://127.0.0.1:8000/posts");
+
+            const data = await response.json();
+
+            const postsContainer = document.getElementById("posts");
+
+            postsContainer.innerHTML = "";  // Clear existing posts
+
+            data.posts.forEach(async (post) => {
+
+                const postDiv = document.createElement("div");
+
+                postDiv.classList.add("post");
+
+                postDiv.innerHTML = `
+<h4>${post.title}</h4>
+<p>${post.content}</p>
+<p><strong>Author:</strong> ${post.author}</p>
+<p><strong>Post ID:</strong> ${post.post_id}</p>
+<div id="comments-${post.post_id}" class="comments"></div>
+<input type="text" id="comment-${post.post_id}" placeholder="Write a comment">
+<button onclick="addComment('${post.post_id}')">Post Comment</button>
+
+                `;
+
+                postsContainer.appendChild(postDiv);
+
+                // Load comments for the post
+
+                loadComments(post.post_id);
+
+            });
+
+        }
+
+        // Fetch and display comments for each post
+
+        async function loadComments(postId) {
+
+            const response = await fetch(`http://127.0.0.1:8000/posts/${postId}/comments`);
+
+            const data = await response.json();
+
+            const commentsContainer = document.getElementById(`comments-${postId}`);
+
+            commentsContainer.innerHTML = "<h5>Comments:</h5>";
+
+            data.comments.forEach((comment) => {
+
+                const commentDiv = document.createElement("p");
+
+                commentDiv.innerText = `${comment.author}: ${comment.comment}`;
+
+                commentsContainer.appendChild(commentDiv);
+
+            });
+
+        }
+
+        // Handle adding a comment to a post
+
+        async function addComment(postId) {
+
+            const commentInput = document.getElementById(`comment-${postId}`);
+
+            if (!token) {
+
+                alert("You must be logged in to comment.");
+
+                return;
+
+            }
+
+            const response = await fetch(`http://127.0.0.1:8000/posts/${postId}/comments`, {
+
+                method: "POST",
+
+                headers: {
+
+                    "Content-Type": "application/json",
+
+                    "Authorization": `Bearer ${token}`
+
+                },
+
+                body: JSON.stringify({ comment: commentInput.value })
+
+            });
+
+            if (response.ok) {
+
+                commentInput.value = "";
+
+                loadComments(postId);
+
+            } else {
+
+                alert("Failed to add comment.");
+
+            }
+
+        }
+
+        // Load posts on page load
+
+        loadPosts();
+</script>
+</body>
+</html> 
